@@ -1,4 +1,6 @@
 import json
+from logging import Logger
+from typing import Any, Optional
 
 
 class Config:
@@ -37,6 +39,11 @@ class Config:
         self.use_bert_last_4_layers = config["use_bert_last_4_layers"]
 
         self.seed = config["seed"]
+
+        # TODO this is bullshit. Must be fixed
+        self.vocab: Any = None
+        self.label_num: int | None = None
+        self.logger: Optional[Logger] = None
 
         for k, v in args.__dict__.items():
             if v is not None:
