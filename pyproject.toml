@@ -20,6 +20,7 @@ black = "^22.10.0"
 mypy = "^1.4.0"
 flake8 = "^5.0.4"
 isort = "^5.10.1"
+types-requests = "2.31.0"
 
 [tool.black]
 max-line-length = 110

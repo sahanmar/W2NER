@@ -1,4 +1,4 @@
-from typing import Iterable, Optional
+from typing import Iterable, Optional, cast
 
 import torch
 import torch.nn as nn
@@ -18,7 +18,7 @@ class LayerNorm(nn.Module):
         scale: bool = True,
         epsilon: Optional[float] = None,
         conditional: bool = False,
-        hidden_units: int = None,
+        hidden_units: Optional[int] = None,
         # TODO Change to enum
         hidden_activation: str = "linear",
         hidden_initializer: str = "xaiver",
@@ -78,9 +78,9 @@ class LayerNorm(nn.Module):
         self, inputs: torch.Tensor, cond: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         # TODO fix `cond` because its not mypy right
-        if self.conditional:
+        if self.conditional and cond is not None:
             if self.hidden_units is not None:
-                cond = self.hidden_dense(cond)
+                cond = cast(torch.Tensor, self.hidden_dense(cond))
 
             for _ in range(len(inputs.shape) - len(cond.shape)):
                 cond = cond.unsqueeze(1)
@@ -148,9 +148,9 @@ class ConvolutionLayer(nn.Module):
             x = conv(x)
             x = F.gelu(x)
             outputs.append(x)
-        outputs = torch.cat(outputs, dim=1)
-        outputs = outputs.permute(0, 2, 3, 1).contiguous()
-        return outputs
+        output_tensor = torch.cat(outputs, dim=1)
+        output_tensor = output_tensor.permute(0, 2, 3, 1).contiguous()
+        return output_tensor
 
 
 class Biaffine(nn.Module):
@@ -233,7 +233,7 @@ class CoPredictor(nn.Module):
 
         z = self.dropout(self.mlp_rel(z))
         o2 = self.linear(z)
-        return o1 + o2
+        return cast(torch.Tensor, o1 + o2)
 
 
 class Model(nn.Module):
@@ -270,6 +270,9 @@ class Model(nn.Module):
             conv_input_size, config.conv_hid_size, config.dilation, config.conv_dropout
         )
         self.dropout = nn.Dropout(config.emb_dropout)
+        # TODO remove when config fixed
+        if config.label_num is None:
+            raise ValueError("config.label_num is not specified")
         self.predictor = CoPredictor(
             config.label_num,
             config.lstm_hid_size,
@@ -324,7 +327,7 @@ class Model(nn.Module):
         )
         packed_outs, (hidden, _) = self.encoder(packed_embs)
         word_reps, _ = pad_packed_sequence(
-            packed_outs, batch_first=True, total_length=sent_length.max()
+            packed_outs, batch_first=True, total_length=int(sent_length.max())
         )
 
         cln = self.cln(word_reps.unsqueeze(2), word_reps)
@@ -344,4 +347,4 @@ class Model(nn.Module):
         )
         outputs = self.predictor(word_reps, word_reps, conv_outputs)
 
-        return outputs
+        return cast(torch.Tensor, outputs)

@@ -4,7 +4,8 @@ from typing import Any, Optional
 
 
 class Config:
-    def __init__(self, args):
+    # TODO do not pass arg parse shit
+    def __init__(self, args: Any) -> None:
         with open(args.config, "r", encoding="utf-8") as f:
             config = json.load(f)
 
@@ -42,12 +43,12 @@ class Config:
 
         # TODO this is bullshit. Must be fixed
         self.vocab: Any = None
-        self.label_num: int | None = None
+        self.label_num: Optional[int] = None
         self.logger: Optional[Logger] = None
 
         for k, v in args.__dict__.items():
             if v is not None:
                 self.__dict__[k] = v
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}".format(self.__dict__.items())

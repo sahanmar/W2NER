@@ -1,10 +1,13 @@
 import logging
-import pickle
 import time
 from collections import defaultdict, deque
+from logging import Logger
+from typing import Any
+
+import numpy as np
 
 
-def get_logger(dataset):
+def get_logger(dataset: str) -> Logger:
     pathname = "./log/{}_{}.txt".format(dataset, time.strftime("%m-%d_%H-%M-%S"))
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -26,38 +29,29 @@ def get_logger(dataset):
     return logger
 
 
-def save_file(path, data):
-    with open(path, "wb") as f:
-        pickle.dump(data, f)
-
-
-def load_file(path):
-    with open(path, "rb") as f:
-        data = pickle.load(f)
-    return data
-
-
-def convert_index_to_text(index, type):
+def convert_index_to_text(index: list[int], type: int) -> str:
     text = "-".join([str(i) for i in index])
     text = text + "-#-{}".format(type)
     return text
 
 
-def convert_text_to_index(text):
+def convert_text_to_index(text: str) -> tuple[list[int], int]:
     index, type = text.split("-#-")
-    index = [int(x) for x in index.split("-")]
-    return index, int(type)
+    indices = [int(x) for x in index.split("-")]
+    return indices, int(type)
 
 
-def decode(outputs, entities, length):
+def decode(
+    outputs: np.ndarray, entities: list[set[str]], length: np.ndarray
+) -> tuple[int, int, int, list[Any]]:
     class Node:
-        def __init__(self):
-            self.THW = []  # [(tail, type)]
-            self.NNW = defaultdict(set)  # {(head,tail): {next_index}}
+        def __init__(self) -> None:
+            self.THW: list[Any] = []  # [(tail, type)]
+            self.NNW: dict[Any, Any] = defaultdict(set)  # {(head,tail): {next_index}}
 
     ent_r, ent_p, ent_c = 0, 0, 0
     decode_entities = []
-    q = deque()
+    q: deque[list[int]] = deque()
     for instance, ent_set, l in zip(outputs, entities, length):
         predicts = []
         nodes = [Node() for _ in range(l)]
@@ -92,15 +86,16 @@ def decode(outputs, entities, length):
                         else:
                             q.append(chains + [idx])
 
-        predicts = set([convert_index_to_text(x[0], x[1]) for x in predicts])
-        decode_entities.append([convert_text_to_index(x) for x in predicts])
+        text_predicts = set([convert_index_to_text(x[0], x[1]) for x in predicts])
+        decode_entities.append([convert_text_to_index(x) for x in text_predicts])
         ent_r += len(ent_set)
-        ent_p += len(predicts)
-        ent_c += len(predicts.intersection(ent_set))
+        ent_p += len(text_predicts)
+        ent_c += len(text_predicts.intersection(ent_set))
     return ent_c, ent_p, ent_r, decode_entities
 
 
-def cal_f1(c, p, r):
+# TODO do not return arguments
+def cal_f1(c: float, p: float, r: float) -> tuple[float, float, float]:
     if r == 0 or p == 0:
         return 0, 0, 0
 

@@ -192,7 +192,7 @@ class Trainer:
         table.add_row(["Entity"] + ["{:3.4f}".format(x) for x in [e_f1, e_p, e_r]])
 
         logger.info("\n{}".format(table))
-        return cast(float, e_f1)
+        return e_f1
 
     def predict(
         self, epoch: str, data_loader: DataLoader, data: list[dict[str, Any]]
@@ -287,7 +287,7 @@ class Trainer:
         with open(config.predict_path, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False)
 
-        return cast(float, e_f1)
+        return e_f1
 
     # TODO Make Path
     def save(self, path: str) -> None:
